@@ -176,6 +176,20 @@ public class ModPublisher : IMod
         dependenciesToggleRT.anchorMax = Vector2.up;
         dependenciesToggleRT.offsetMin = new Vector2(20, -810);
         dependenciesToggleRT.offsetMax = new Vector2(80, -750);
+        // Visibility
+        var visibilityLabel = UIFactory.AddLocalizedTextSecondary(MainContent, prepareUploadMenuState);
+        var visibilityLabelRT = visibilityLabel.GetComponent<RectTransform>();
+        visibilityLabelRT.anchorMin = Vector2.up;
+        visibilityLabelRT.anchorMax = Vector2.one;
+        visibilityLabelRT.offsetMin = new Vector2(90, -870);
+        visibilityLabelRT.offsetMax = new Vector2(-20, -810);
+        visibilityLabel.Alignment = TextAlignmentOptions.Left;
+        var visibilityPublicToggle = UIFactory.AddToggle(MainContent, prepareUploadMenuState);
+        var visibilityPublicToggleRT = visibilityPublicToggle.GetComponent<RectTransform>();
+        visibilityPublicToggleRT.anchorMin = Vector2.up;
+        visibilityPublicToggleRT.anchorMax = Vector2.up;
+        visibilityPublicToggleRT.offsetMin = new Vector2(20, -870);
+        visibilityPublicToggleRT.offsetMax = new Vector2(80, -810);
         // Version range
         var versionLabel = UIFactory.AddLocalizedTextSecondary(MainContent, prepareUploadMenuState);
         var versionLabelRT = versionLabel.GetComponent<RectTransform>();
@@ -239,6 +253,8 @@ public class ModPublisher : IMod
         prepareUploadMenuState.changelogInput = changelogInput;
         prepareUploadMenuState.dependenciesLabel = dependenciesLabel;
         prepareUploadMenuState.dependenciesToggle = dependenciesToggle;
+        prepareUploadMenuState.visibilityLabel = visibilityLabel;
+        prepareUploadMenuState.visibilityPublicToggle = visibilityPublicToggle;
         prepareUploadMenuState.versionLabel = versionLabel;
         prepareUploadMenuState.versionToLabel = versionToLabel;
         prepareUploadMenuState.versionFromDropdown = versionFromDropdown;

@@ -67,6 +67,7 @@ public class PrepareUploadMenuState : HUDMainMenuState
         openPreviewButton.Text = "menu.prepare-upload.open-preview".T();
         descriptionLabel.Text = "menu.prepare-upload.mod-description".T();
         changelogLabel.Text = "menu.prepare-upload.mod-changelog".T();
+        visibilityLabel.Text = "menu.prepare-upload.mod-visibility".T();
         versionLabel.Text = "menu.prepare-upload.version-range".T();
         versionToLabel.Text = "menu.prepare-upload.version-to".T();
         versionToDropdown.Options = versionFromDropdown.Options =
@@ -109,7 +110,7 @@ public class PrepareUploadMenuState : HUDMainMenuState
             uploadStatusText.gameObject, openPreviewButton.gameObject, previewImage.gameObject, descriptionLabel.gameObject,
             descriptionInput.gameObject, changelogLabel.gameObject, changelogInput.gameObject,
             dependenciesToggle.gameObject, dependenciesLabel.gameObject, uploadButton.gameObject,
-            backButton.gameObject, viewInWorkshopButton.gameObject
+            backButton.gameObject, viewInWorkshopButton.gameObject, visibilityLabel.gameObject, visibilityPublicToggle.gameObject
         ]; 
     }
 
@@ -233,10 +234,18 @@ public class PrepareUploadMenuState : HUDMainMenuState
         
             dependenciesLabel.Text = "menu.prepare-upload.toggle-dependencies".T().Bind("dependencies", FormatDependencies(mod.Metadata.Dependencies));
             dependenciesToggle.Value = true;
+            
+            visibilityPublicToggle.Value = false;
 
             versionToDropdown.Value = versionFromDropdown.Value = 0;
             
             ShowObjects(_modInfoObjects);
+
+            if (_existingItem == null)
+            {
+                visibilityLabel.gameObject.SetActive(true);
+                visibilityPublicToggle.gameObject.SetActive(true);
+            }
         }
         catch (Exception e)
         {
@@ -275,11 +284,22 @@ public class PrepareUploadMenuState : HUDMainMenuState
             networkAction.Text = "menu.prepare-upload.action.uploading".T().Bind("progress", new RawText(""));
             uploadStatusText.Text = new RawText("");
             ShowObjects(_uploadingPendingObjects);
-            
+
             var editor = _existingItem?.Edit()
-                         ?? new Editor(WorkshopFileType.Community)
-                             .WithTitle(mod.Descriptor.ModTitle)
-                             .WithPrivateVisibility();
+                         ?? new Editor(WorkshopFileType.Community).WithTitle(mod.Descriptor.ModTitle);
+
+            if (_existingItem == null)
+            {
+                if (visibilityPublicToggle.Value)
+                {
+                    editor.WithPublicVisibility();
+                }
+                else
+                {
+                    editor.WithPrivateVisibility();
+                }
+            }
+            
             editor.WithChangeLog(changelogInput.Value);
             
             if (!Directory.Exists(mod.Descriptor.DirectoryPath))
@@ -434,6 +454,8 @@ public class PrepareUploadMenuState : HUDMainMenuState
     public HUDInputField changelogInput;
     public HUDLocalizedText dependenciesLabel;
     public HUDToggleControl dependenciesToggle;
+    public HUDLocalizedText visibilityLabel;
+    public HUDToggleControl visibilityPublicToggle;
     public HUDLocalizedText versionLabel;
     public HUDLocalizedText versionToLabel;
     public HUDDropdownControl versionFromDropdown;
