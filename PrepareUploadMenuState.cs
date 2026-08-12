@@ -1,7 +1,9 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using Core.Collections.Scoped;
 using Core.Dependency;
 using Core.Localization;
+using Crosstales.FB;
 using Game.Core.Modding;
 using Game.Modding;
 using Game.Modding.Steam;
@@ -18,6 +20,8 @@ public class PrepareUploadMenuState : HUDMainMenuState
 {
     private readonly Sprite _previewPlaceholder;
 
+    [CanBeNull] private string _selectedPreview;
+
     public PrepareUploadMenuState()
     {
         var texture = FileTextureLoader.LoadTexture(ModPublisher.Resources.SubPath("preview_placeholder.png"));
@@ -32,6 +36,11 @@ public class PrepareUploadMenuState : HUDMainMenuState
         uploadButton.OnClick.AddListener(() => ModPublisher.Logger.Info.Log("Example Button Pressed"));
         infoText.Text = "menu.prepare-upload.mod-info".T();
         previewLabel.Text = "menu.prepare-upload.mod-preview".T();
+        openPreviewButton.OnClick.AddListener(() =>
+        {
+            Crosstales.Common.Util.Singleton<FileBrowser>.Instance.OnOpenFilesCompleted.AddListener(OnPreviewFileSelected);
+            Crosstales.Common.Util.Singleton<FileBrowser>.Instance.OpenSingleFileAsync("Select preview image", GameEnvironmentManager.ModsPath, string.Empty, "png", "jpg");
+        });
         previewImage.type = Image.Type.Simple;
         previewImage.preserveAspect = true;
         previewImage.material = null;
@@ -53,6 +62,26 @@ public class PrepareUploadMenuState : HUDMainMenuState
             "public" => new RawText("Latest Version"),
             _ => new RawText(branch)
         };
+    }
+
+    private void OnPreviewFileSelected(bool selected, string file, string files)
+    {
+        Crosstales.Common.Util.Singleton<FileBrowser>.Instance.OnOpenFilesCompleted.RemoveListener(OnPreviewFileSelected);
+        if (!selected) return;
+        try
+        {
+            var texture = FileTextureLoader.LoadTexture(file);
+            RoundCorners(texture);
+            previewImage.sprite = Sprite.Create(texture,
+                new Rect(0.0f, 0.0f, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f));
+            _selectedPreview = file;
+        }
+        catch (Exception e)
+        {
+            ModPublisher.Logger.Error!.Log("Error loading selected preview");
+            ModPublisher.Logger.Error!.LogException(e);
+        }
     }
 
     public override void OnDispose()

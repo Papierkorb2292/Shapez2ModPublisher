@@ -223,7 +223,6 @@
 		<DoNotPublicize Include="SPZGameAssembly:BuildingDefinition" IncludeCompilerGeneratedMembers="false" IncludeVirtualMembers="false"/>
 		<DoNotPublicize Include="Game.Orchestration:ParentToolbarElementData" IncludeCompilerGeneratedMembers="false" IncludeVirtualMembers="false"/>
 		<DoNotPublicize Include="Game.Orchestration:RootToolbarElementData" IncludeCompilerGeneratedMembers="false" IncludeVirtualMembers="false"/>
-
 	</ItemGroup>
 
 	<PropertyGroup>
