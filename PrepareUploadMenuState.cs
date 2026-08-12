@@ -32,6 +32,7 @@ public class PrepareUploadMenuState : HUDMainMenuState
     private ResolvedMod? _currentMod;
     private string _initialDescription;
     private Item? _existingItem;
+    private int dialogId = 0;
 
     private GameObject[] _modInfoObjects;
     private GameObject[] _loadingObjects;
@@ -143,6 +144,7 @@ public class PrepareUploadMenuState : HUDMainMenuState
             }
 
             _currentMod = mod;
+            var currentDialogId = ++dialogId;
         
             networkAction.Text = "menu.prepare-upload.action.loading".T();
             ShowObjects(_loadingObjects);
@@ -165,6 +167,16 @@ public class PrepareUploadMenuState : HUDMainMenuState
                     }
                 }
             }
+            
+            var sprite = _existingItem == null
+                ? _previewPlaceholder
+                : await DownloadPreview(_existingItem.Value.PreviewImageUrl) ?? _previewPlaceholder;
+
+            if (currentDialogId != dialogId)
+            {
+                // The menu was reopened in the time it took to make the requests, don't do anything
+                return;
+            }
 
             titleText.Text = "menu.prepare-upload.mod-title".T().Bind("mod-title", new RawText(mod.Descriptor.ModTitle));
         
@@ -174,10 +186,7 @@ public class PrepareUploadMenuState : HUDMainMenuState
             else
                 workshopStatusText.Text = "menu.prepare-upload.title-matched-existing".T();
 
-            if (_existingItem == null)
-                previewImage.sprite = _previewPlaceholder;
-            else
-                previewImage.sprite = await DownloadPreview(_existingItem.Value.PreviewImageUrl) ?? _previewPlaceholder;
+            previewImage.sprite = sprite;
             _selectedPreview = null;
             
             if (_existingItem == null)
