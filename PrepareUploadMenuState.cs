@@ -202,12 +202,12 @@ public class PrepareUploadMenuState : HUDMainMenuState
 
             if (HasLocalDependency(mod.Metadata.Dependencies))
             {
-                workshopStatusText.Color = Color.indianRed;
+                workshopStatusText.Color = new Color(0.8039216f, 0.3607843f, 0.3607843f, 1f); //Color.indianRed;
                 workshopStatusText.Text = "menu.prepare-upload.local-dependencies-warning".T();
             }
             else
             {
-                workshopStatusText.Color = Color.yellowNice;
+                workshopStatusText.Color = new Color(1f, 0.92f, 0.016f, 1f); //Color.yellowNice;
                 if (_existingItem == null)
                     workshopStatusText.Text = "menu.prepare-upload.title-is-new".T();
                 else
@@ -249,7 +249,9 @@ public class PrepareUploadMenuState : HUDMainMenuState
     private static async Task<Sprite> DownloadPreview(string url)
     {
         using var www = UnityWebRequestTexture.GetTexture(url);
-        await www.SendWebRequest();
+        www.SendWebRequest();
+        while(!www.isDone)
+            await Task.Yield();
 
         if (www.result != UnityWebRequest.Result.Success)
         {
