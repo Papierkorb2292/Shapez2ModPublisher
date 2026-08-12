@@ -33,6 +33,7 @@ public class PrepareUploadMenuState : HUDMainMenuState
         infoText.Text = "menu.prepare-upload.mod-info".T();
         previewLabel.Text = "menu.prepare-upload.mod-preview".T();
         previewImage.type = Image.Type.Simple;
+        previewImage.preserveAspect = true;
         previewImage.material = null;
         openPreviewButton.Text = "menu.prepare-upload.open-preview".T();
         descriptionLabel.Text = "menu.prepare-upload.mod-description".T();
@@ -111,20 +112,27 @@ public class PrepareUploadMenuState : HUDMainMenuState
 
     private void RoundCorners(Texture2D texture)
     {
+        void ClearPixel(int x, int y, float alpha)
+        {
+            var original = texture.GetPixel(x, y);
+            texture.SetPixel(x, y, new Color(original.r, original.g, original.b, original.a * alpha));
+        }
+        
         var radius = Mathf.Min(texture.width, texture.height) / 5;
         ModPublisher.Logger.Info!.LogFormat("Radius: {0}", radius);
         for (int y = 0; y <= radius; y++)
         {
             for (int x = 0; x <= radius; x++)
             {
-                var isVisible = x * x + y * y <= radius * radius;
-                if (isVisible)
+                var dist = Mathf.Sqrt(x * x + y * y) - radius;
+                if (dist <= 0)
                     continue;
+                var alpha = Mathf.Clamp01(1 - dist / 3);
                 ModPublisher.Logger.Info!.LogFormat("Clearing: {0} {1}", radius - x, radius - y);
-                texture.SetPixel(radius - x, radius - y, new Color(0, 0, 0, 0));
-                texture.SetPixel(texture.width - 1 - radius + x, radius - y, new Color(0, 0, 0, 0));
-                texture.SetPixel(texture.width - 1 - radius + x, texture.height - 1 - radius + y, new Color(0, 0, 0, 0));
-                texture.SetPixel(radius - x, texture.height - 1 - radius + y, new Color(0, 0, 0, 0));
+                ClearPixel(radius - x, radius - y, alpha);
+                ClearPixel(texture.width - 1 - radius + x, radius - y, alpha);
+                ClearPixel(texture.width - 1 - radius + x, texture.height - 1 - radius + y, alpha);
+                ClearPixel(radius - x, texture.height - 1 - radius + y, alpha);
             }
         }
         texture.Apply();
