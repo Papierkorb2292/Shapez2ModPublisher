@@ -1,0 +1,22 @@
+﻿{
+  "Version": "1.0.0",
+  "Description": "A quick and easy way to upload mods directly from the in-game mods menu",
+  "Author": "Papierkorb2292",
+  "GameVersionSupportRange": ">=1.0.0",
+  "Assemblies": [
+    "ModPublisher.dll"
+  ],
+  "Dependencies": [
+    {
+      "ModId": "steam:3542611357",
+      "ModTitle": "Shapez Shifter",
+      "Version": "^1.1.0"
+    },
+    {
+      "ModId": "steam:3735218203",
+      "ModTitle": "Shapez2UILib",
+      "Version": ">=1.0.0"
+    }
+  ],
+  "Conflicts": []
+}
