@@ -12,7 +12,7 @@
     "menu.prepare-upload.version-range": "Game Version Range:",
     "menu.prepare-upload.version-to": "to",
     "menu.prepare-upload.toggle-dependencies": "Add dependencies from manifest: <dependencies/>",
-    "menu.prepare-upload.local-dependencies-warning": "WARNING: Your mod manifest contains local dependencies. Please replace them with steam dependencies before you continue.",
+    "menu.prepare-upload.local-dependencies-warning": "WARNING: Your mod manifest contains local dependencies. Please replace them with steam dependencies before you continue!",
     "menu.prepare-upload.action.loading": "Loading...",
     "menu.prepare-upload.action.uploading": "Uploading... <progress/>",
     "menu.prepare-upload.action.error": "Error:",

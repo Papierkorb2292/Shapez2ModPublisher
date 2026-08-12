@@ -199,12 +199,20 @@ public class PrepareUploadMenuState : HUDMainMenuState
             }
 
             titleText.Text = "menu.prepare-upload.mod-title".T().Bind("mod-title", new RawText(mod.Descriptor.ModTitle));
-        
-            workshopStatusText.Color = Color.yellowNice;
-            if(_existingItem == null)
-                workshopStatusText.Text = "menu.prepare-upload.title-is-new".T();
+
+            if (HasLocalDependency(mod.Metadata.Dependencies))
+            {
+                workshopStatusText.Color = Color.indianRed;
+                workshopStatusText.Text = "menu.prepare-upload.local-dependencies-warning".T();
+            }
             else
-                workshopStatusText.Text = "menu.prepare-upload.title-matched-existing".T();
+            {
+                workshopStatusText.Color = Color.yellowNice;
+                if (_existingItem == null)
+                    workshopStatusText.Text = "menu.prepare-upload.title-is-new".T();
+                else
+                    workshopStatusText.Text = "menu.prepare-upload.title-matched-existing".T();
+            }
 
             previewImage.sprite = sprite;
             _selectedPreview = null;
@@ -364,6 +372,11 @@ public class PrepareUploadMenuState : HUDMainMenuState
             contents.Add(new RawText(steamDeps[i].ModTitle));
         }
         return new CombinedText(contents.ToArray());
+    }
+
+    private bool HasLocalDependency(VersionedModReference[] dependencies)
+    {
+        return dependencies.Any(dependency => dependency.ModId is LocalModId);
     }
 
     private static void RoundCorners(Texture2D texture)
