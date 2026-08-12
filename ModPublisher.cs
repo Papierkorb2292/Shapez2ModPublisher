@@ -110,6 +110,16 @@ public class ModPublisher : IMod
         workshopStatusRT.offsetMax = new Vector2(400, -140);
         workshopStatusText.Alignment = TextAlignmentOptions.TopLeft;
         workshopStatusText.UIText.textWrappingMode = TextWrappingModes.Normal;
+        // Upload status
+        var uploadStatusText = UIFactory.AddLocalizedTextSecondary(MainContent, prepareUploadMenuState);
+        var uploadStatusRT = uploadStatusText.GetComponent<RectTransform>();
+        uploadStatusRT.anchorMin = Vector2.up;
+        uploadStatusRT.anchorMax = Vector2.one;
+        uploadStatusRT.offsetMin = new Vector2(20, -240);
+        uploadStatusRT.offsetMax = new Vector2(-20, -140);
+        uploadStatusText.UIText.fontSize *= 2;
+        uploadStatusText.UIText.fontSizeMax *= 2;
+        uploadStatusText.UIText.textWrappingMode = TextWrappingModes.Normal;
         // Description
         var descriptionLabel = UIFactory.AddLocalizedTextSecondary(MainContent, prepareUploadMenuState);
         var descriptionLabelRT = descriptionLabel.GetComponent<RectTransform>();
@@ -192,13 +202,27 @@ public class ModPublisher : IMod
         versionToDropdownRT.anchorMax = new Vector2(0.45f, 1);
         versionToDropdownRT.offsetMin = new Vector2(20, -870);
         versionToDropdownRT.offsetMax = new Vector2(180, -810);
-        
+        // Upload Button
         var uploadButton = UIFactory.AddButton(MainContent, prepareUploadMenuState);
         var uploadButtonRT = uploadButton.GetComponent<RectTransform>();
         uploadButtonRT.anchorMin = Vector2.zero;
         uploadButtonRT.anchorMax = Vector2.zero;
         uploadButtonRT.offsetMin = new Vector2(20, 20);
         uploadButtonRT.offsetMax = new Vector2(420, 80);
+        // Back Button (after upload)
+        var backButton = UIFactory.AddButton(MainContent, prepareUploadMenuState);
+        var backButtonRT = backButton.GetComponent<RectTransform>();
+        backButtonRT.anchorMin = Vector2.up;
+        backButtonRT.anchorMax = Vector2.up;
+        backButtonRT.offsetMin = new Vector2(20, -300);
+        backButtonRT.offsetMax = new Vector2(200, -240);
+        // View In Workshop (after upload)
+        var viewInWorkshopButton = UIFactory.AddButton(MainContent, prepareUploadMenuState);
+        var viewInWorkshopButtonRT = viewInWorkshopButton.GetComponent<RectTransform>();
+        viewInWorkshopButtonRT.anchorMin = Vector2.up;
+        viewInWorkshopButtonRT.anchorMax = Vector2.up;
+        viewInWorkshopButtonRT.offsetMin = new Vector2(250, -300);
+        viewInWorkshopButtonRT.offsetMax = new Vector2(650, -240);
         
         
         prepareUploadMenuState.infoText = infoText;
@@ -208,6 +232,7 @@ public class ModPublisher : IMod
         prepareUploadMenuState.openPreviewButton = openPreviewButton;
         prepareUploadMenuState.previewImage = previewImage.transform.Find("Panel").GetComponent<Image>();
         prepareUploadMenuState.workshopStatusText = workshopStatusText;
+        prepareUploadMenuState.uploadStatusText = uploadStatusText;
         prepareUploadMenuState.descriptionLabel = descriptionLabel;
         prepareUploadMenuState.descriptionInput = descriptionInput;
         prepareUploadMenuState.changelogLabel = changelogLabel;
@@ -219,6 +244,8 @@ public class ModPublisher : IMod
         prepareUploadMenuState.versionFromDropdown = versionFromDropdown;
         prepareUploadMenuState.versionToDropdown = versionToDropdown;
         prepareUploadMenuState.uploadButton = uploadButton;
+        prepareUploadMenuState.backButton = backButton;
+        prepareUploadMenuState.viewInWorkshopButton = viewInWorkshopButton;
     }
     public void OnModEntryConstruct(HUDModMenuEntry modEntry, IModDescriptor descriptor, ModManifest manifest, IDictionary<IModId, IModDescriptor> mods)
     {

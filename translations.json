@@ -14,8 +14,16 @@
     "menu.prepare-upload.toggle-dependencies": "Add dependencies from manifest: <dependencies/>",
     "menu.prepare-upload.local-dependencies-warning": "WARNING: Your mod manifest contains local dependencies. Please replace them with steam dependencies before you continue.",
     "menu.prepare-upload.action.loading": "Loading...",
-    "menu.prepare-upload.action.uploading": "Uploading...",
+    "menu.prepare-upload.action.uploading": "Uploading... <progress/>",
+    "menu.prepare-upload.action.error": "Error:",
+    "menu.prepare-upload.error.preview-missing": "The preview image is no longer present",
+    "menu.prepare-upload.error.content-missing": "The mod folder is no longer present",
+    "menu.prepare-upload.error.steam": "Steam reported: <error/>",
+    "menu.prepare-upload.error.item-missing": "Workshop item is missing for unknown reason, please visit the workshop to check if it was uploaded",
     "menu.prepare-upload.upload-confirm": "Upload Now",
+    "menu.prepare-upload.success": "Success!!",
+    "menu.prepare-upload.back": "Back",
+    "menu.prepare-upload.view-workshop": "View in Workshop",
     "modpublisher.prepare-upload": "Prepare Upload To Workshop"
   }
 }

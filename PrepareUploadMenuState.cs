@@ -32,11 +32,14 @@ public class PrepareUploadMenuState : HUDMainMenuState
     private ResolvedMod? _currentMod;
     private string _initialDescription;
     private Item? _existingItem;
+    private PublishedFileId? _uploadedItem;
     private int dialogId = 0;
 
     private GameObject[] _modInfoObjects;
     private GameObject[] _loadingObjects;
-    private GameObject[] _uploadingObjects;
+    private GameObject[] _uploadingPendingObjects;
+    private GameObject[] _uploadingSuccessObjects;
+    private GameObject[] _uploadingErrorObjects;
     private GameObject[] _allObjects;
 
     public PrepareUploadMenuState()
@@ -69,6 +72,20 @@ public class PrepareUploadMenuState : HUDMainMenuState
         versionToDropdown.Options = versionFromDropdown.Options =
             ModPublisher.GameBranches.Select(FormatBranch).ToList();
         uploadButton.Text = "menu.prepare-upload.upload-confirm".T();
+        backButton.Text = "menu.prepare-upload.back".T();
+        backButton.OnClick.AddListener(() =>
+        {
+            if(_uploadedItem == null)
+                ShowObjects(_modInfoObjects); // There was an error, so show the mod info again
+            else
+                GoBack();
+        });
+        viewInWorkshopButton.Text = "menu.prepare-upload.view-workshop".T();
+        viewInWorkshopButton.OnClick.AddListener(() =>
+        {
+            if(_uploadedItem != null)
+                SteamFriends.OpenWebOverlay("https://steamcommunity.com/sharedfiles/filedetails/?id=" + _uploadedItem.Value);  
+        });
         
         // Turns out Shapez's current version of Steamworks doesn't support versions at all 
         versionLabel.gameObject.SetActiveSelfExt(false);
@@ -77,7 +94,9 @@ public class PrepareUploadMenuState : HUDMainMenuState
         versionFromDropdown.gameObject.SetActiveSelfExt(false);
 
         _loadingObjects = [networkAction.gameObject];
-        _uploadingObjects = [networkAction.gameObject];
+        _uploadingPendingObjects = [networkAction.gameObject];
+        _uploadingSuccessObjects = [networkAction.gameObject, uploadStatusText.gameObject, backButton.gameObject, viewInWorkshopButton.gameObject];
+        _uploadingErrorObjects = [networkAction.gameObject, uploadStatusText.gameObject, backButton.gameObject];
         _modInfoObjects =
         [
             infoText.gameObject, workshopStatusText.gameObject, titleText.gameObject, previewLabel.gameObject,
@@ -87,9 +106,10 @@ public class PrepareUploadMenuState : HUDMainMenuState
         ];
         _allObjects = [
             networkAction.gameObject, infoText.gameObject, workshopStatusText.gameObject, titleText.gameObject, previewLabel.gameObject,
-            openPreviewButton.gameObject, previewImage.gameObject, descriptionLabel.gameObject,
+            uploadStatusText.gameObject, openPreviewButton.gameObject, previewImage.gameObject, descriptionLabel.gameObject,
             descriptionInput.gameObject, changelogLabel.gameObject, changelogInput.gameObject,
-            dependenciesToggle.gameObject, dependenciesLabel.gameObject, uploadButton.gameObject
+            dependenciesToggle.gameObject, dependenciesLabel.gameObject, uploadButton.gameObject,
+            backButton.gameObject, viewInWorkshopButton.gameObject
         ]; 
     }
 
@@ -242,8 +262,8 @@ public class PrepareUploadMenuState : HUDMainMenuState
                 return;
             var mod = _currentMod.Value;
             ModPublisher.Logger.Info!.Log("Uploading Mod");
-            networkAction.Text = "menu.prepare-upload.action.uploading".T();
-            ShowObjects(_uploadingObjects);
+            networkAction.Text = "menu.prepare-upload.action.uploading".T().Bind("progress", new RawText(""));
+            ShowObjects(_uploadingPendingObjects);
             
             var editor = _existingItem?.Edit()
                          ?? new Editor(WorkshopFileType.Community)
@@ -253,7 +273,8 @@ public class PrepareUploadMenuState : HUDMainMenuState
             
             if (!Directory.Exists(mod.Descriptor.DirectoryPath))
             {
-                ModPublisher.Logger.Error!.Log("Mod folder is no longer present"); //TODO: Notify user
+                ShowUploadError("menu.prepare-upload.error.content-missing".T());
+                ModPublisher.Logger.Error!.Log("Mod folder is no longer present");
                 return;
             }
             editor.WithContent(mod.Descriptor.DirectoryPath);
@@ -262,7 +283,8 @@ public class PrepareUploadMenuState : HUDMainMenuState
                 ModPublisher.Logger.Info!.Log("Updating preview");
                 if (!File.Exists(_selectedPreview))
                 {
-                    ModPublisher.Logger.Error!.Log("Preview file is no longer present"); //TODO: Notify user
+                    ShowUploadError("menu.prepare-upload.error.preview-missing".T());
+                    ModPublisher.Logger.Error!.Log("Preview file is no longer present");
                     return;
                 }
                 editor.WithPreviewFile(_selectedPreview);
@@ -273,19 +295,25 @@ public class PrepareUploadMenuState : HUDMainMenuState
                 editor.WithDescription(descriptionInput.Value);
             }
 
-            var result = await editor.SubmitAsync();
+            var result = await editor.SubmitAsync(new Progress<float>(progress =>
+            {
+                networkAction.Text = "menu.prepare-upload.action.uploading".T().Bind("progress", new RawText((int)progress + "%"));
+            }));
             if (!result.Success)
             {
-                ModPublisher.Logger.Error!.Log("Error uploading mod"); //TODO: Notify user
+                ShowUploadError("menu.prepare-upload.error.steam".T().Bind("error", new RawText(result.Result.ToString())));
+                ModPublisher.Logger.Error!.Log("Error uploading mod");
                 return;
             }
             var item = await Item.GetAsync(result.FileId);
             if (item == null)
             {
-                ModPublisher.Logger.Error!.Log("Unknown error uploading mod"); //TODO: Notify user
+                ShowUploadError("menu.prepare-upload.error.item-missing".T());
+                ModPublisher.Logger.Error!.Log("Unknown error uploading mod");
                 return;
             }
-            ModPublisher.Logger.Info!.Log("Item was uploaded");
+            
+            networkAction.Text = "menu.prepare-upload.action.uploading".T().Bind("progress", new RawText("100%"));
         
             if (dependenciesToggle.Value)
             {
@@ -296,12 +324,33 @@ public class PrepareUploadMenuState : HUDMainMenuState
                     await item.Value.AddDependency(steamId.Id);
                 }
             }
+
+            _uploadedItem = result.FileId;
+            uploadStatusText.Color = new Color(1f, 1f, 1f, 0.502f);
+            uploadStatusText.Text = "menu.prepare-upload.success".T();
+            ShowObjects(_uploadingSuccessObjects);
+            ModPublisher.Logger.Info!.Log("Item was uploaded");
+            
         }
         catch (Exception e)
         {
-            ModPublisher.Logger.Error!.Log("Error preparing file upload"); //TODO: Notify user
+            ShowUploadError(new RawText(e.Message));
+            ModPublisher.Logger.Error!.Log("Error preparing file upload");
             ModPublisher.Logger.Error!.LogException(e);
         }
+    }
+    
+    public void ShowUploadError(IText error)
+    {
+        networkAction.Text = "menu.prepare-upload.action.error".T();
+        uploadStatusText.Color = new Color(1f, 0.1f, 0.1f, 0.502f);
+        uploadStatusText.Text = error;
+        ShowObjects(_uploadingErrorObjects);
+    }
+    
+    public void ExploreMods()
+    {
+        SteamFriends.OpenWebOverlay("https://steamcommunity.com/workshop/browse/?appid=2162800&browsesort=trend&section=readytouseitems");
     }
 
     private IText FormatDependencies(VersionedModReference[] dependencies)
@@ -359,6 +408,7 @@ public class PrepareUploadMenuState : HUDMainMenuState
     public HUDLocalizedText networkAction;
     public HUDLocalizedText titleText;
     public HUDLocalizedText workshopStatusText;
+    public HUDLocalizedText uploadStatusText;
     public HUDLocalizedText previewLabel;
     public HUDButton openPreviewButton;
     public Image previewImage;
@@ -373,4 +423,6 @@ public class PrepareUploadMenuState : HUDMainMenuState
     public HUDDropdownControl versionFromDropdown;
     public HUDDropdownControl versionToDropdown;
     public HUDButton uploadButton;
+    public HUDButton backButton;
+    public HUDButton viewInWorkshopButton;
 }
