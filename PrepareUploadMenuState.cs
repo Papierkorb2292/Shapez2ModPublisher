@@ -21,6 +21,7 @@ public class PrepareUploadMenuState : HUDMainMenuState
     private readonly Sprite _previewPlaceholder;
 
     [CanBeNull] private string _selectedPreview;
+    private bool _descriptionWasChanged;
 
     public PrepareUploadMenuState()
     {
@@ -46,6 +47,10 @@ public class PrepareUploadMenuState : HUDMainMenuState
         previewImage.material = null;
         openPreviewButton.Text = "menu.prepare-upload.open-preview".T();
         descriptionLabel.Text = "menu.prepare-upload.mod-description".T();
+        descriptionInput.OnChange.AddListener(_ =>
+        {
+            _descriptionWasChanged = true;
+        });
         changelogLabel.Text = "menu.prepare-upload.mod-changelog".T();
         versionLabel.Text = "menu.prepare-upload.version-range".T();
         versionToLabel.Text = "menu.prepare-upload.version-to".T();
@@ -109,7 +114,8 @@ public class PrepareUploadMenuState : HUDMainMenuState
 
         ModPublisher.Logger.Info!.LogFormat("Image: {0}", _previewPlaceholder);
         previewImage.sprite = _previewPlaceholder;
-        
+
+        _descriptionWasChanged = true; // TODO: When the description is fetched from the Workshop this should be false
         descriptionInput.Value = mod.Metadata.Description;
         descriptionInput.UIInputField.caretPosition = 0;
         descriptionInput.UIInputField.textComponent.rectTransform.anchoredPosition = Vector2.zero;
