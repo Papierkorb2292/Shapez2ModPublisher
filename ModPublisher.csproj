@@ -78,6 +78,14 @@
 			<HintPath>$(SPZ2_PATH)\UnityEngine.ImageConversionModule.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
+		<Reference Include="UnityEngine.UnityWebRequestModule">
+			<HintPath>$(SPZ2_PATH)\UnityEngine.UnityWebRequestModule.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="UnityEngine.UnityWebRequestTextureModule">
+			<HintPath>$(SPZ2_PATH)\UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
 		<Reference Include="Unity.Mathematics">
 			<HintPath>$(SPZ2_PATH)\Unity.Mathematics.dll</HintPath>
 			<Private>False</Private>

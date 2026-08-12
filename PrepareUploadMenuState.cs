@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Core.Collections.Scoped;
 using Core.Dependency;
 using Core.Localization;
+using Crosstales;
 using Crosstales.FB;
 using Game.Core.Modding;
 using Game.Modding;
@@ -14,9 +15,12 @@ using Menu.MainMenu.Mods;
 using Shapez2UILib;
 using ShapezShifter.Textures;
 using Steamworks;
+using Steamworks.Data;
 using Steamworks.Ugc;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.Networking;
+using Color = UnityEngine.Color;
+using Image = UnityEngine.UI.Image;
 
 namespace ModPublisher;
 
@@ -26,7 +30,13 @@ public class PrepareUploadMenuState : HUDMainMenuState
 
     [CanBeNull] private string _selectedPreview;
     private ResolvedMod? _currentMod;
-    private bool _descriptionWasChanged;
+    private string _initialDescription;
+    private Item? _existingItem;
+
+    private GameObject[] _modInfoObjects;
+    private GameObject[] _loadingObjects;
+    private GameObject[] _uploadingObjects;
+    private GameObject[] _allObjects;
 
     public PrepareUploadMenuState()
     {
@@ -52,10 +62,6 @@ public class PrepareUploadMenuState : HUDMainMenuState
         previewImage.material = null;
         openPreviewButton.Text = "menu.prepare-upload.open-preview".T();
         descriptionLabel.Text = "menu.prepare-upload.mod-description".T();
-        descriptionInput.OnChange.AddListener(_ =>
-        {
-            _descriptionWasChanged = true;
-        });
         changelogLabel.Text = "menu.prepare-upload.mod-changelog".T();
         versionLabel.Text = "menu.prepare-upload.version-range".T();
         versionToLabel.Text = "menu.prepare-upload.version-to".T();
@@ -68,6 +74,22 @@ public class PrepareUploadMenuState : HUDMainMenuState
         versionToLabel.gameObject.SetActiveSelfExt(false);
         versionToDropdown.gameObject.SetActiveSelfExt(false);
         versionFromDropdown.gameObject.SetActiveSelfExt(false);
+
+        _loadingObjects = [networkAction.gameObject];
+        _uploadingObjects = [networkAction.gameObject];
+        _modInfoObjects =
+        [
+            infoText.gameObject, workshopStatusText.gameObject, titleText.gameObject, previewLabel.gameObject,
+            openPreviewButton.gameObject, previewImage.gameObject, descriptionLabel.gameObject,
+            descriptionInput.gameObject, changelogLabel.gameObject, changelogInput.gameObject,
+            dependenciesToggle.gameObject, dependenciesLabel.gameObject, uploadButton.gameObject
+        ];
+        _allObjects = [
+            networkAction.gameObject, infoText.gameObject, workshopStatusText.gameObject, titleText.gameObject, previewLabel.gameObject,
+            openPreviewButton.gameObject, previewImage.gameObject, descriptionLabel.gameObject,
+            descriptionInput.gameObject, changelogLabel.gameObject, changelogInput.gameObject,
+            dependenciesToggle.gameObject, dependenciesLabel.gameObject, uploadButton.gameObject
+        ]; 
     }
 
     private static IText FormatBranch([CanBeNull] string branch)
@@ -109,41 +131,98 @@ public class PrepareUploadMenuState : HUDMainMenuState
         Menu.SwitchToState<HUDMenuModsState>();
     }
 
-    public override void OnMenuEnterState(object payload)
+    public override async void OnMenuEnterState(object payload)
     {
-        if (payload is not ResolvedMod mod)
+        try
         {
-            ModPublisher.Logger.Info?.Log("OnMenuEnterState payload was not resolved mod");
-            GoBack();
-            return;
+            if (payload is not ResolvedMod mod)
+            {
+                ModPublisher.Logger.Info?.Log("OnMenuEnterState payload was not resolved mod");
+                GoBack();
+                return;
+            }
+
+            _currentMod = mod;
+        
+            networkAction.Text = "menu.prepare-upload.action.loading".T();
+            ShowObjects(_loadingObjects);
+
+            var query = Query.Items
+                .LimitUser(SteamClient.SteamId);
+            var page = 1;
+            _existingItem = null;
+            while (_existingItem == null)
+            {
+                var result = await query.GetPageAsync(page++);
+                if (result == null || result.Value.ResultCount == 0)
+                    break;
+                foreach(var entry in result.Value.Entries)
+                {
+                    if (entry.Title == mod.Descriptor.ModTitle)
+                    {
+                        _existingItem = entry;
+                        break;
+                    }
+                }
+            }
+
+            titleText.Text = "menu.prepare-upload.mod-title".T().Bind("mod-title", new RawText(mod.Descriptor.ModTitle));
+        
+            workshopStatusText.Color = Color.yellowNice;
+            if(_existingItem == null)
+                workshopStatusText.Text = "menu.prepare-upload.title-is-new".T();
+            else
+                workshopStatusText.Text = "menu.prepare-upload.title-matched-existing".T();
+
+            if (_existingItem == null)
+                previewImage.sprite = _previewPlaceholder;
+            else
+                previewImage.sprite = await DownloadPreview(_existingItem.Value.PreviewImageUrl) ?? _previewPlaceholder;
+            _selectedPreview = null;
+            
+            if (_existingItem == null)
+                descriptionInput.Value = mod.Metadata.Description;
+            else
+                descriptionInput.Value = _existingItem.Value.Description;
+            _initialDescription = _existingItem == null ? "" : _existingItem.Value.Description;
+            descriptionInput.UIInputField.caretPosition = 0;
+            descriptionInput.UIInputField.textComponent.rectTransform.anchoredPosition = Vector2.zero;
+            descriptionInput.UIInputField.AssignPositioningIfNeeded();
+        
+            changelogInput.Value = "v" + mod.Metadata.Version;
+            changelogInput.UIInputField.caretPosition = 0;
+            changelogInput.UIInputField.textComponent.rectTransform.anchoredPosition = Vector2.zero;
+            changelogInput.UIInputField.AssignPositioningIfNeeded();
+        
+            dependenciesLabel.Text = "menu.prepare-upload.toggle-dependencies".T().Bind("dependencies", FormatDependencies(mod.Metadata.Dependencies));
+            dependenciesToggle.Value = true;
+
+            versionToDropdown.Value = versionFromDropdown.Value = 0;
+            
+            ShowObjects(_modInfoObjects);
         }
+        catch (Exception e)
+        {
+            ModPublisher.Logger.Error!.Log("Error loading prepare upload screen");
+            ModPublisher.Logger.Error!.LogException(e);
+        }
+    }
 
-        _currentMod = mod;
-        
-        titleText.Text = "menu.prepare-upload.mod-title".T().Bind("mod-title", new RawText(mod.Descriptor.ModTitle));
-        
-        workshopStatusText.Color = Color.yellowNice;
-        workshopStatusText.Text = "menu.prepare-upload.title-is-new".T();
+    [ItemCanBeNull]
+    private static async Task<Sprite> DownloadPreview(string url)
+    {
+        using var www = UnityWebRequestTexture.GetTexture(url);
+        await www.SendWebRequest();
 
-        ModPublisher.Logger.Info!.LogFormat("Image: {0}", _previewPlaceholder);
-        previewImage.sprite = _previewPlaceholder;
-        _selectedPreview = null;
-
-        _descriptionWasChanged = true; // TODO: When the description is fetched from the Workshop this should be false
-        descriptionInput.Value = mod.Metadata.Description;
-        descriptionInput.UIInputField.caretPosition = 0;
-        descriptionInput.UIInputField.textComponent.rectTransform.anchoredPosition = Vector2.zero;
-        descriptionInput.UIInputField.AssignPositioningIfNeeded();
-        
-        changelogInput.Value = "v" + mod.Metadata.Version;
-        changelogInput.UIInputField.caretPosition = 0;
-        changelogInput.UIInputField.textComponent.rectTransform.anchoredPosition = Vector2.zero;
-        changelogInput.UIInputField.AssignPositioningIfNeeded();
-        
-        dependenciesLabel.Text = "menu.prepare-upload.toggle-dependencies".T().Bind("dependencies", FormatDependencies(mod.Metadata.Dependencies));
-        dependenciesToggle.Value = true;
-
-        versionToDropdown.Value = versionFromDropdown.Value = 0;
+        if (www.result != UnityWebRequest.Result.Success)
+        {
+            ModPublisher.Logger.Error!.LogFormat("Error downloading preview image {0}: {1}", url, www.error);
+            return null;
+        }
+        var texture = DownloadHandlerTexture.GetContent(www);
+        RoundCorners(texture);
+        var rect = new Rect(0, 0, texture.width, texture.height);
+        return Sprite.Create(texture, rect, new Vector2(0.5f,0.5f));
     }
 
     private async void OnUploadPressed()
@@ -154,11 +233,16 @@ public class PrepareUploadMenuState : HUDMainMenuState
                 return;
             var mod = _currentMod.Value;
             ModPublisher.Logger.Info!.Log("Uploading Mod");
-            var editor = new Editor(WorkshopFileType.Community)
-                .WithTitle(mod.Descriptor.ModTitle)
-                .WithPrivateVisibility()
-                .WithChangeLog(changelogInput.Value);
-            if (!File.Exists(_selectedPreview))
+            networkAction.Text = "menu.prepare-upload.action.uploading".T();
+            ShowObjects(_uploadingObjects);
+            
+            var editor = _existingItem?.Edit()
+                         ?? new Editor(WorkshopFileType.Community)
+                             .WithTitle(mod.Descriptor.ModTitle)
+                             .WithPrivateVisibility();
+            editor.WithChangeLog(changelogInput.Value);
+            
+            if (!Directory.Exists(mod.Descriptor.DirectoryPath))
             {
                 ModPublisher.Logger.Error!.Log("Mod folder is no longer present"); //TODO: Notify user
                 return;
@@ -174,13 +258,11 @@ public class PrepareUploadMenuState : HUDMainMenuState
                 }
                 editor.WithPreviewFile(_selectedPreview);
             }
-            if (_descriptionWasChanged)
+            if (_initialDescription != descriptionInput.Value)
             {
                 ModPublisher.Logger.Info!.Log("Updating description");
                 editor.WithDescription(descriptionInput.Value);
             }
-        
-            GoBack();
 
             var result = await editor.SubmitAsync();
             if (!result.Success)
@@ -226,7 +308,7 @@ public class PrepareUploadMenuState : HUDMainMenuState
         return new CombinedText(contents.ToArray());
     }
 
-    private void RoundCorners(Texture2D texture)
+    private static void RoundCorners(Texture2D texture)
     {
         void ClearPixel(int x, int y, float alpha)
         {
@@ -235,7 +317,6 @@ public class PrepareUploadMenuState : HUDMainMenuState
         }
         
         var radius = Mathf.Min(texture.width, texture.height) / 5;
-        ModPublisher.Logger.Info!.LogFormat("Radius: {0}", radius);
         for (int y = 0; y <= radius; y++)
         {
             for (int x = 0; x <= radius; x++)
@@ -244,7 +325,6 @@ public class PrepareUploadMenuState : HUDMainMenuState
                 if (dist <= 0)
                     continue;
                 var alpha = Mathf.Clamp01(1 - dist / 3);
-                ModPublisher.Logger.Info!.LogFormat("Clearing: {0} {1}", radius - x, radius - y);
                 ClearPixel(radius - x, radius - y, alpha);
                 ClearPixel(texture.width - 1 - radius + x, radius - y, alpha);
                 ClearPixel(texture.width - 1 - radius + x, texture.height - 1 - radius + y, alpha);
@@ -254,8 +334,20 @@ public class PrepareUploadMenuState : HUDMainMenuState
         texture.Apply();
     }
 
+    private void ShowObjects(GameObject[] gameObjects)
+    {
+        foreach (var child in _allObjects)
+        {
+            child.SetActiveSelfExt(false);
+        }
+        foreach (var child in gameObjects)
+        {
+            child.SetActive(true);
+        }
+    }
 
     public HUDLocalizedText infoText;
+    public HUDLocalizedText networkAction;
     public HUDLocalizedText titleText;
     public HUDLocalizedText workshopStatusText;
     public HUDLocalizedText previewLabel;

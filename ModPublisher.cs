@@ -64,6 +64,15 @@ public class ModPublisher : IMod
         infoTextRT.anchorMax = Vector2.up;
         infoTextRT.offsetMin = new Vector2(20, -80);
         infoTextRT.offsetMax = new Vector2(200, -20);
+        // Network Action
+        var networkAction = UIFactory.AddLocalizedTextPrimary(MainContent, prepareUploadMenuState);
+        var networkActionRT = networkAction.GetComponent<RectTransform>();
+        networkActionRT.anchorMin = Vector2.up;
+        networkActionRT.anchorMax = Vector2.one;
+        networkActionRT.offsetMin = new Vector2(20, -140);
+        networkActionRT.offsetMax = new Vector2(-20, -20);
+        networkAction.UIText.fontSize *= 3;
+        networkAction.UIText.fontSizeMax *= 3;
         // Title
         var titleText = UIFactory.AddLocalizedTextSecondary(MainContent, prepareUploadMenuState);
         var titleTextRT = titleText.GetComponent<RectTransform>();
@@ -193,6 +202,7 @@ public class ModPublisher : IMod
         
         
         prepareUploadMenuState.infoText = infoText;
+        prepareUploadMenuState.networkAction = networkAction;
         prepareUploadMenuState.titleText = titleText;
         prepareUploadMenuState.previewLabel = previewLabel;
         prepareUploadMenuState.openPreviewButton = openPreviewButton;
