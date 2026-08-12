@@ -94,7 +94,7 @@ public class PrepareUploadMenuState : HUDMainMenuState
         versionFromDropdown.gameObject.SetActiveSelfExt(false);
 
         _loadingObjects = [networkAction.gameObject];
-        _uploadingPendingObjects = [networkAction.gameObject];
+        _uploadingPendingObjects = [networkAction.gameObject, uploadStatusText.gameObject];
         _uploadingSuccessObjects = [networkAction.gameObject, uploadStatusText.gameObject, backButton.gameObject, viewInWorkshopButton.gameObject];
         _uploadingErrorObjects = [networkAction.gameObject, uploadStatusText.gameObject, backButton.gameObject];
         _modInfoObjects =
@@ -273,6 +273,7 @@ public class PrepareUploadMenuState : HUDMainMenuState
             var mod = _currentMod.Value;
             ModPublisher.Logger.Info!.Log("Uploading Mod");
             networkAction.Text = "menu.prepare-upload.action.uploading".T().Bind("progress", new RawText(""));
+            uploadStatusText.Text = new RawText("");
             ShowObjects(_uploadingPendingObjects);
             
             var editor = _existingItem?.Edit()
@@ -307,7 +308,7 @@ public class PrepareUploadMenuState : HUDMainMenuState
 
             var result = await editor.SubmitAsync(new Progress<float>(progress =>
             {
-                networkAction.Text = "menu.prepare-upload.action.uploading".T().Bind("progress", new RawText((int)progress + "%"));
+                networkAction.Text = "menu.prepare-upload.action.uploading".T().Bind("progress", new RawText((int)(progress * 100) + "%"));
             }));
             if (!result.Success)
             {
@@ -323,20 +324,20 @@ public class PrepareUploadMenuState : HUDMainMenuState
                 return;
             }
             
-            networkAction.Text = "menu.prepare-upload.action.uploading".T().Bind("progress", new RawText("100%"));
-        
+            uploadStatusText.Color = new Color(1f, 1f, 1f, 0.502f);
             if (dependenciesToggle.Value)
             {
+                var dependencyNumber = 1;
                 foreach (var dependency in mod.Metadata.Dependencies)
                 {
                     if (dependency.ModId is not SteamModId steamId) continue;
                     ModPublisher.Logger.Info!.LogFormat("Adding dependency {0} ({1})", dependency.ModTitle, steamId.Id);
+                    uploadStatusText.Text = "menu.prepare-upload.updating-dependency".T().Bind("dependency", new RawText(dependencyNumber++.ToString()));
                     await item.Value.AddDependency(steamId.Id);
                 }
             }
 
             _uploadedItem = result.FileId;
-            uploadStatusText.Color = new Color(1f, 1f, 1f, 0.502f);
             uploadStatusText.Text = "menu.prepare-upload.success".T();
             ShowObjects(_uploadingSuccessObjects);
             ModPublisher.Logger.Info!.Log("Item was uploaded");
