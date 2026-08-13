@@ -171,7 +171,8 @@ public class PrepareUploadMenuState : HUDMainMenuState
             ShowObjects(_loadingObjects);
 
             var query = Query.Items
-                .LimitUser(SteamClient.SteamId);
+                .LimitUser(SteamClient.SteamId)
+                .WithLongDescription(true);
             var page = 1;
             _existingItem = null;
             while (_existingItem == null)
