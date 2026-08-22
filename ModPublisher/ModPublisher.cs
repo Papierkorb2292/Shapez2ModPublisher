@@ -24,9 +24,6 @@ namespace ModPublisher;
 public class ModPublisher : IMod
 {
     public static Core.Logging.ILogger Logger;
-    // This list has to be hardcoded, because "someone" is still shipping a years old steamworks version with their game >:(
-    [ItemCanBeNull]
-    public static string[] GameBranches = [null, "public", "0.0.9-old", "0.1.1-old", "experimental", "modding_stable"];
 
     public static ModFolderLocator Resources;
     
@@ -36,6 +33,15 @@ public class ModPublisher : IMod
     {
         Logger = logger;
         Resources = ModDirectoryLocator.CreateLocator<ModPublisher>().SubLocator("Resources");
+        SteamworksLoader.Install();
+        RegisterUploadMenuState();
+    }
+
+    // Separate method, so PrepareUploadMenuState is loaded after SteamworksLoader.Install is called
+    private void RegisterUploadMenuState()
+    {
+        PrepareUploadMenuState.Logger = Logger;
+        PrepareUploadMenuState.Resources = Resources;
         MainMenuUIRegistrar.RegisterUI<PrepareUploadMenuState>(
             BuildPrepareUploadMenu,
             "ModUpload",
@@ -43,13 +49,14 @@ public class ModPublisher : IMod
             "menu.prepare-upload.title",
             "there's no menu with this name, because I don't want this directly in the main menu",
             "About"
-            );
+        );
         _modMenuConstructorHook = DetourHelper
             .CreatePostfixHook<HUDModMenuEntry, IModDescriptor, ModManifest, IDictionary<IModId, IModDescriptor>>(
                 (entry, descriptor, modManifest, mods) => entry.Construct(descriptor, modManifest, mods),
                 OnModEntryConstruct
             );
     }
+    
     public void Dispose()
     {
         _modMenuConstructorHook.Dispose();

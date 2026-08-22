@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamworksInteraction", "SteamworksInteraction\SteamworksInteraction.csproj", "{B235E616-17EA-4E13-AEFA-E631B0779891}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModPublisher", "ModPublisher\ModPublisher.csproj", "{262B5436-A631-4600-A267-FEA9062F71D0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B235E616-17EA-4E13-AEFA-E631B0779891}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B235E616-17EA-4E13-AEFA-E631B0779891}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B235E616-17EA-4E13-AEFA-E631B0779891}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B235E616-17EA-4E13-AEFA-E631B0779891}.Release|Any CPU.Build.0 = Release|Any CPU
+		{262B5436-A631-4600-A267-FEA9062F71D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{262B5436-A631-4600-A267-FEA9062F71D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{262B5436-A631-4600-A267-FEA9062F71D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{262B5436-A631-4600-A267-FEA9062F71D0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

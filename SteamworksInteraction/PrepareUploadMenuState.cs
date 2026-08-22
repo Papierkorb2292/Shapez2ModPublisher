@@ -13,6 +13,7 @@ using Game.Modding.Steam;
 using JetBrains.Annotations;
 using Menu.MainMenu.Mods;
 using Shapez2UILib;
+using ShapezShifter.Kit;
 using ShapezShifter.Textures;
 using Steamworks;
 using Steamworks.Data;
@@ -26,6 +27,12 @@ namespace ModPublisher;
 
 public class PrepareUploadMenuState : HUDMainMenuState
 {
+    // This list has to be hardcoded, because "someone" is still shipping a years old steamworks version with their game >:(
+    [ItemCanBeNull]
+    public static string[] GameBranches = [null, "public", "0.0.9-old", "0.1.1-old", "experimental", "modding_stable"];
+    public static Core.Logging.ILogger Logger;
+    public static ModFolderLocator Resources;
+    
     private readonly Sprite _previewPlaceholder;
 
     [CanBeNull] private string _selectedPreview;
@@ -44,7 +51,7 @@ public class PrepareUploadMenuState : HUDMainMenuState
 
     public PrepareUploadMenuState()
     {
-        var texture = FileTextureLoader.LoadTexture(ModPublisher.Resources.SubPath("preview_placeholder.png"));
+        var texture = FileTextureLoader.LoadTexture(Resources.SubPath("preview_placeholder.png"));
         RoundCorners(texture);
         _previewPlaceholder = Sprite.Create(texture, new Rect(0.0f, 0.0f, texture.width, texture.height),
             new Vector2(0.5f, 0.5f));
@@ -70,8 +77,7 @@ public class PrepareUploadMenuState : HUDMainMenuState
         visibilityLabel.Text = "menu.prepare-upload.mod-visibility".T();
         versionLabel.Text = "menu.prepare-upload.version-range".T();
         versionToLabel.Text = "menu.prepare-upload.version-to".T();
-        versionToDropdown.Options = versionFromDropdown.Options =
-            ModPublisher.GameBranches.Select(FormatBranch).ToList();
+        versionToDropdown.Options = versionFromDropdown.Options = GameBranches.Select(FormatBranch).ToList();
         uploadButton.Text = "menu.prepare-upload.upload-confirm".T();
         backButton.Text = "menu.prepare-upload.back".T();
         backButton.OnClick.AddListener(() =>
@@ -139,8 +145,8 @@ public class PrepareUploadMenuState : HUDMainMenuState
         }
         catch (Exception e)
         {
-            ModPublisher.Logger.Error!.Log("Error loading selected preview");
-            ModPublisher.Logger.Error!.LogException(e);
+            Logger.Error!.Log("Error loading selected preview");
+            Logger.Error!.LogException(e);
         }
     }
 
@@ -159,7 +165,7 @@ public class PrepareUploadMenuState : HUDMainMenuState
         {
             if (payload is not ResolvedMod mod)
             {
-                ModPublisher.Logger.Info?.Log("OnMenuEnterState payload was not resolved mod");
+                Logger.Info?.Log("OnMenuEnterState payload was not resolved mod");
                 GoBack();
                 return;
             }
@@ -250,8 +256,8 @@ public class PrepareUploadMenuState : HUDMainMenuState
         }
         catch (Exception e)
         {
-            ModPublisher.Logger.Error!.Log("Error loading prepare upload screen");
-            ModPublisher.Logger.Error!.LogException(e);
+            Logger.Error!.Log("Error loading prepare upload screen");
+            Logger.Error!.LogException(e);
         }
     }
 
@@ -265,7 +271,7 @@ public class PrepareUploadMenuState : HUDMainMenuState
 
         if (www.result != UnityWebRequest.Result.Success)
         {
-            ModPublisher.Logger.Error!.LogFormat("Error downloading preview image {0}: {1}", url, www.error);
+            Logger.Error!.LogFormat("Error downloading preview image {0}: {1}", url, www.error);
             return null;
         }
         var texture = DownloadHandlerTexture.GetContent(www);
@@ -281,7 +287,7 @@ public class PrepareUploadMenuState : HUDMainMenuState
             if (_currentMod == null)
                 return;
             var mod = _currentMod.Value;
-            ModPublisher.Logger.Info!.Log("Uploading Mod");
+            Logger.Info!.Log("Uploading Mod");
             networkAction.Text = "menu.prepare-upload.action.uploading".T().Bind("progress", new RawText(""));
             uploadStatusText.Text = new RawText("");
             ShowObjects(_uploadingPendingObjects);
@@ -306,24 +312,24 @@ public class PrepareUploadMenuState : HUDMainMenuState
             if (!Directory.Exists(mod.Descriptor.DirectoryPath))
             {
                 ShowUploadError("menu.prepare-upload.error.content-missing".T());
-                ModPublisher.Logger.Error!.Log("Mod folder is no longer present");
+                Logger.Error!.Log("Mod folder is no longer present");
                 return;
             }
             editor.WithContent(mod.Descriptor.DirectoryPath);
             if (_selectedPreview != null)
             {
-                ModPublisher.Logger.Info!.Log("Updating preview");
+                Logger.Info!.Log("Updating preview");
                 if (!File.Exists(_selectedPreview))
                 {
                     ShowUploadError("menu.prepare-upload.error.preview-missing".T());
-                    ModPublisher.Logger.Error!.Log("Preview file is no longer present");
+                    Logger.Error!.Log("Preview file is no longer present");
                     return;
                 }
                 editor.WithPreviewFile(_selectedPreview);
             }
             if (_initialDescription != descriptionInput.Value)
             {
-                ModPublisher.Logger.Info!.Log("Updating description");
+                Logger.Info!.Log("Updating description");
                 editor.WithDescription(descriptionInput.Value);
             }
 
@@ -334,14 +340,14 @@ public class PrepareUploadMenuState : HUDMainMenuState
             if (!result.Success)
             {
                 ShowUploadError("menu.prepare-upload.error.steam".T().Bind("error", new RawText(result.Result.ToString())));
-                ModPublisher.Logger.Error!.Log("Error uploading mod");
+                Logger.Error!.Log("Error uploading mod");
                 return;
             }
             var item = await Item.GetAsync(result.FileId);
             if (item == null)
             {
                 ShowUploadError("menu.prepare-upload.error.item-missing".T());
-                ModPublisher.Logger.Error!.Log("Unknown error uploading mod");
+                Logger.Error!.Log("Unknown error uploading mod");
                 return;
             }
             
@@ -352,7 +358,7 @@ public class PrepareUploadMenuState : HUDMainMenuState
                 foreach (var dependency in mod.Metadata.Dependencies)
                 {
                     if (dependency.ModId is not SteamModId steamId) continue;
-                    ModPublisher.Logger.Info!.LogFormat("Adding dependency {0} ({1})", dependency.ModTitle, steamId.Id);
+                    Logger.Info!.LogFormat("Adding dependency {0} ({1})", dependency.ModTitle, steamId.Id);
                     uploadStatusText.Text = "menu.prepare-upload.updating-dependency".T().Bind("dependency", new RawText(dependencyNumber++.ToString()));
                     await item.Value.AddDependency(steamId.Id);
                 }
@@ -361,14 +367,14 @@ public class PrepareUploadMenuState : HUDMainMenuState
             _uploadedItem = result.FileId;
             uploadStatusText.Text = "menu.prepare-upload.success".T();
             ShowObjects(_uploadingSuccessObjects);
-            ModPublisher.Logger.Info!.Log("Item was uploaded");
+            Logger.Info!.Log("Item was uploaded");
             
         }
         catch (Exception e)
         {
             ShowUploadError(new RawText(e.Message));
-            ModPublisher.Logger.Error!.Log("Error preparing file upload");
-            ModPublisher.Logger.Error!.LogException(e);
+            Logger.Error!.Log("Error preparing file upload");
+            Logger.Error!.LogException(e);
         }
     }
     
